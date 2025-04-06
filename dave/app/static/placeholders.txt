@@ -1,0 +1,55 @@
+/* your_project_name/app/static/css/style.css */
+
+/* Add your custom styles here */
+body {
+    padding-top: 56px; /* Adjust based on navbar height */
+    padding-bottom: 60px; /* Add padding for footer */
+}
+
+footer {
+    margin-top: 3rem;
+    padding: 1rem 0;
+    background-color: #f8f9fa; /* Light background for footer */
+}
+
+/* Style flash messages a bit more */
+.alert {
+    margin-bottom: 1rem;
+}
+
+/* Example: Style for resource list items */
+.list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.list-group-item form {
+    margin-left: auto; /* Push form to the right */
+}
+
+```javascript
+// your_project_name/app/static/js/script.js
+
+// Add global JavaScript functions here if needed
+console.log("Custom script loaded.");
+
+// Example: Maybe add confirmation dialogs for delete buttons
+// (Already added inline in the template for simplicity, but could be here)
+// document.addEventListener('DOMContentLoaded', function() {
+//     const deleteForms = document.querySelectorAll('form[onsubmit*="confirm"]');
+//     deleteForms.forEach(form => {
+//         form.addEventListener('submit', function(event) {
+//             if (!confirm('Are you sure?')) { // Use the confirmation message from the form or a generic one
+//                 event.preventDefault();
+//             }
+//         });
+//     });
+// });
+```text
+# your_project_name/app/static/img/
+# Create this directory.
+# You can place a placeholder image like 'logo.png' here if needed.
+# For example, download a simple placeholder from https://placehold.co/
+```
+These are placeholder files for your custom CSS and JavaScript. The `img` directory is where you'd store static images used by your templates (like logos, icons, etc.), distinct from user-uploaded images which go into the `UPLOAD_FOLDER`
