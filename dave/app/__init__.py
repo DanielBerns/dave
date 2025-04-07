@@ -1,5 +1,7 @@
 # your_project_name/app/__init__.py
 
+import logging
+from logging.handlers import RotatingFileHandler
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -7,10 +9,19 @@ from flask_login import LoginManager
 # from flask_migrate import Migrate # Uncomment if using Flask-Migrate
 from .config import Config # Use dot notation for relative import
 
+logging_level_str_to_int = {
+    "NOT_SET": logging.NOTSET,
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARN": logging.WARN,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL
+}
+
 # Initialize extensions, but don't configure them yet
 db = SQLAlchemy()
 login_manager = LoginManager()
-# migrate = Migrate() # Uncomment if using Flask-Migrate
+migrate = Migrate()
 
 # Configure login manager
 login_manager.login_view = 'auth.login' # The endpoint name for the login page
@@ -28,7 +39,7 @@ def create_app(config_class=Config):
     # Initialize extensions with the app instance
     db.init_app(app)
     login_manager.init_app(app)
-    # migrate.init_app(app, db) # Uncomment if using Flask-Migrate
+    migrate.init_app(app, db) # Uncomment if using Flask-Migrate
 
     # Import and register blueprints
     from .auth import bp as auth_bp
@@ -40,26 +51,29 @@ def create_app(config_class=Config):
     from .api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
 
+    file_handler = RotatingFileHandler(
+        Path(app.config['LOGS_PATH'], 'application.log'),
+        maxBytes=10240,
+        backupCount=10
+    )
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]')
+    )
+    logging_level = logging_level_str_to_int.get(app.config["LOGGING_LEVEL"], logging.DEBUG)
+    file_handler.setLevel(logging_level)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging_level)
+    app.logger.info("Started!")
+
     # Define user loader function for Flask-Login
     # Needs to be defined here or imported after User model is defined
     # We'll define it after importing models to avoid circular imports
     from .models import User
+
     @login_manager.user_loader
     def load_user(user_id):
         # Return the user object or None if not found
         return User.query.get(int(user_id))
-
-    # Optional: Create database tables if they don't exist
-    # This is simple but Flask-Migrate is better for production
-    with app.app_context():
-        # You might want to remove this in production and use migrations
-        # db.create_all()
-        # Check if upload folder exists, create if not
-        upload_folder = app.config['UPLOAD_FOLDER']
-        if not os.path.exists(upload_folder):
-            os.makedirs(upload_folder)
-            print(f"Created upload folder: {upload_folder}")
-
 
     @app.route('/test')
     def test_page():
