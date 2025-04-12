@@ -1,20 +1,24 @@
-# your_project_name/app/models.py
-
 from datetime import datetime
 import enum
+from pathlib import Path
+import secrets
+from typing import Optional
 
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from . import db # Import db instance from app package (__init__.py)
+from . import db, login_manager # Import db instance from app package (__init__.py)
+
+from .tools import create_key, get_identifiers_from_number
 
 
 # Enum for Resource Type
-class ResourceType(enum.Enum):
-    HTML = 'html'
+class ResourceType(enum.StrEnum):
+    TEXT_HTML = 'text_html'
     IMAGE = 'image'
+
 
 class ImageType(enum.StrEnum):
     PNG  = '.png'
@@ -25,12 +29,28 @@ class ImageType(enum.StrEnum):
 
 class User(UserMixin, db.Model):
     """User model for authentication."""
-    id = so.Mapped[int] = so.mapped_column(primary_key=True)
-    username = so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
-    email = so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
-    password_hash = so.Mapped[Optional[str]] = so.mapped_column(sa.String(256)) # Increased length for stronger hashes
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
+    email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
+    password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256)) # Increased length for stronger hashes
+    token: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32), index=True, unique=True)
+    token_expiration: so.Mapped[Optional[datetime]]
+
     # Relationship to resources created by the user
-    resources: so.WriteOnlyMapped['Resource'] = so.relationship(back_populates='author', lazy='dynamic')
+    text_htmls: so.WriteOnlyMapped['TextHTML'] = so.relationship(back_populates='author', lazy='dynamic')
+    images: so.WriteOnlyMapped['Image'] = so.relationship(back_populates='author', lazy='dynamic')
+
+    def __repr__(self) -> str:
+        return f'<User {self.username} at {self.email}>'
+
+    def url(self) -> str:
+        return url_for('api.user', id=self.id)
+
+    def text_htmls_url(self) -> str:
+        return url_for('api.text_htmls', id=self.id),
+
+    def images_url(self) -> str:
+        return url_for('api.images', id=self.id),
 
     def set_password(self, password: str) -> None:
         """Hashes the password and stores it."""
@@ -40,109 +60,125 @@ class User(UserMixin, db.Model):
         """Checks if the provided password matches the stored hash."""
         return check_password_hash(self.password_hash, password)
 
-    def __repr__(self) -> str:
-        return f'<User {self.username} at {self.email}>'
+    def text_htmls_count(self) -> int:
+        return 0
+
+    def images_count(self) -> int:
+        return 0
+
+    def to_dict(self) -> dict[str, str]:
+        data = {
+            'id': str(self.id),
+            'username': self.username,
+            'email': self.email,
+            'text_htmls_count': str(self.text_htmls_count()),
+            'images_count': str(self.images_count()),
+            'links': {
+                'self': self.url(),
+                'text_htmls': self.text_htmls_url(),
+                'images': self.images_url()
+            }
+        }
+        return data
+
+    def get_token(self, expires_in: int =3600) -> str:
+        now = datetime.now(timezone.utc)
+        if self.token and self.token_expiration.replace(tzinfo=timezone.utc) > now + timedelta(seconds=60):
+            return self.token
+        self.token = secrets.token_hex(16)
+        self.token_expiration = now + timedelta(seconds=expires_in)
+        db.session.add(self)
+        db.session.commit()
+        return self.token
+
+    def revoke_token(self) -> None:
+        self.token_expiration = datetime.now(timezone.utc) - timedelta(seconds=1)
+        db.session.commit()
+
+    @staticmethod
+    def check_token(token: str) -> Optional["User"]:
+        user = db.session.scalar(sa.select(User).where(User.token == token))
+        if user is None or user.token_expiration.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            return None
+        else:
+            return user
 
 
-def create_resource_key() -> str:
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, "dave.org"))
+@login_manager.user_loader
+def load_user(id: int) -> User:
+    return db.session.get(User, int(id))
 
 
-class Resource(db.Model):
-    """Resource model for storing HTML pages and image references."""
-    id = so.Mapped[int] = so.mapped_column(primary_key=True)
-    resource_type = so.Mapped[ResourceType]
-    timestamp = so.Mapped[datetime] = so.mapped_column(index=True, default=datetime.utcnow)
+class TextHTML(db.Model):
+    """Text HTML content"""
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    label: so.Mapped[str] = so.mapped_column(sa.String(32), index=True, unique=True)
+    content: so.Mapped[str] = so.mapped_column(sa.Text, nullable=True)
 
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-    author: so.Mapped['User'] = so.relationship(back_populates='resources')
+    author: so.Mapped['User'] = so.relationship(back_populates='text_htmls')
+
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=datetime.utcnow)
+
+    def __repr__(self) -> str:
+        return f'<TextHTML({self.id}, {self.timestamp}, {self.author.username}, {self.label})>'
+
+    def url(self) -> str:
+        return f"{str(ResourceType.TEXT_HTML)}/{self.label}"
+
+    def mimetype(self) -> str:
+        return "mimetype"
+
+    def to_dict(self) -> dict[str, str]:
+        data = {
+            'id': str(self.id),
+            'label': self.label,
+            'timestamp': str(self.timestamp),
+            'mimetype': self.mimetype(),
+            'links': {
+                'self': self.url(),
+                'author': self.author.url()
+            }
+        }
+        return data
 
 
-class HTMLResource(db.Model):
-    """HTML content"""
-    id = so.Mapped[int] = so.mapped_column(primary_key=True)
-    key = so.Mapped[str] = so.mapped_column(sa.String(36), index=True)
-    html_content = so.Mapped[str] = so.mapped_column(sa.Text, nullable=True)
-    resource_id = so.Mapped[int] = so.mapped_column(db.ForeignKey('Resource.id')) # Link to the resource definition
-
-    def resource_url(self) -> str:
-        return f"text_html/{self.key}"
-
-def base_256(number: int) -> Tuple[int, int, int]:
-    """
-    Converts a non-negative integer to a base-256 representation.
-
-    Args:
-        number: The integer to convert (must be between 0 and 16777215 inclusive).
-
-    Returns:
-        A tuple of three integers representing the base-256 digits
-        (most significant to least significant).
-
-    Raises:
-        AssertionError: If the input number is out of range.
-    """
-    assert 0 <= number < 16777216, f"Input number must be between 0 and 16777215. Got {number}"
-    third_digit = number % 256
-    number >>= 8  # Equivalent to number //= 256
-    second_digit = number % 256
-    first_digit = number >> 8  # Equivalent to number //= 256
-    return first_digit, second_digit, third_digit
 
 
-def base_10(first_digit: int, second_digit: int, third_digit: int) -> int:
-    """
-    Converts a three-digit base-256 number to its base-10 representation.
+class Image(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    label: so.Mapped[str] = so.mapped_column(sa.String(32), index=True, unique=True)
+    count: so.Mapped[int]
+    image_type: so.Mapped[ImageType]
 
-    Args:
-        first_digit: The most significant digit (0-255).
-        second_digit: The middle digit (0-255).
-        third_digit: The least significant digit (0-255).
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    author: so.Mapped['User'] = so.relationship(back_populates='images')
 
-    Returns:
-        The integer representation of the base-256 number.
-    """
-    return (((first_digit << 8) + second_digit) << 8) + third_digit
-
-
-def get_number_identifier(number: int) -> Tuple[str, str, str]:
-    """
-    Generates a zero-padded, 9-digit string identifier from an integer.
-
-    Args:
-        number: The integer to convert (must be between 0 and 16777215 inclusive).
-
-    Returns:
-        Three 3-character strings representing the identifier (e.g., "000000000", "001002003").
-    """
-    first_digit, second_digit, third_digit = base_256(number)
-    return (f"{first_digit:03d}", f"{second_digit:03d}", f"{third_digit:03d}")
-
-
-class IMAGEResource(db.Model):
-    id = so.Mapped[int] = so.mapped_column(primary_key=True)
-    key = so.Mapped[str] = so.mapped_column(sa.String(36), index=True)
-    resource_id = so.Mapped[int] = so.mapped_column(sa.ForeignKey('Resource.id')) # Link to the resource definition
-    image_type = so.Mapped[ImageType]
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=datetime.utcnow)
 
     def filepath(self) -> Path:
-        first_digit, second_digit, third_digit = get_number_identifier(self.id)
-        return Path(app.config["IMAGES_FOLDER"], first_digit, second_digit, third_digit, "image").with_suffix(str(self.image_type))
+        first_identifier, second_identifier, third_identifier = get_identifiers_from_number(self.cursor)
+        name = f"{first_identifier}{second_identifier}{third_identifier}"
+        return Path(app.config["IMAGES_FOLDER"], first_identifier, second_identifier, name).with_suffix(str(self.image_type))
 
-    def resource_url(self) -> str:
-        return f"image/{self.key}"
+    def __repr__(self) -> str:
+        return f'<Image({self.id}, {self.timestamp}, {self.author.username}, {self.label}, {self.cursor}, {str(self.image_type)})>'
 
-    def __repr__(self):
-        return f'<Image {self.id} - {self.resource_id} - ({str(self.image_type)})>'
+    def url(self) -> str:
+        return f"{str(ResourceType.IMAGE)}/{self.label}"
 
-    # Potential helper methods:
-    # def get_image_url(self):
-    #     if self.resource_type == ResourceType.IMAGE and self.filepath:
-    #         # Construct URL based on UPLOAD_FOLDER configuration and filepath
-    #         # Requires access to app config or defining static URL path
-    #         pass
-    #     return None
+    def mimetype(self) -> str:
+        return "mimetype"
 
-# These are the SQLAlchemy models for your `User` and `Resource` tables.
-# The `User` model includes password hashing and methods required by Flask-Login.
-# The `Resource` model stores information about uploaded HTML content or image files.
+    def to_dict(self) -> dict[str, str]:
+        data = {
+            'id': str(self.id),
+            'label': self.label,
+            'timestamp': str(self.timestamp),
+            'mimetype': self.mimetype(),
+            'links': {
+                'self': self.url(),
+                'author': self.author.url()
+            }
+        }
+        return data

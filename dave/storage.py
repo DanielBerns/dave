@@ -64,7 +64,3 @@ class Storage:
         logging.info(f" logs_path: {str(logs_path):s}")
         return root, store_path, logs_path
 
-    @staticmethod
-    def read(base: str) -> Tuple[Path, Path, Path]:
-        root, store_path, logs_path = Storage.initialize(base, identifier)
-        return root, store_path, logs_path

@@ -10,8 +10,9 @@ from dotenv import load_dotenv
 
 from storage import Storage
 
-BASE = "dave" # maybe os.environ.get('DAVE_BASE')
-root, store_path, logs_path = Storage.read(BASE)
+BASE = str(Path("~", "Info").expanduser())
+IDENTIFIER = "dave" # maybe os.environ.get('IDENTIFIER')
+root, store_path, logs_path = Storage.initialize(BASE, IDENTIFIER)
 
 # Load environment variables from .env file "{root}/.env"
 load_dotenv(Path(root, '.env'))
@@ -22,12 +23,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI') or 'sqlite:///' + str(Path(store_path, 'app.db'))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL') or 'DEBUG'
-    IMAGES_FOLDER = str(Storage.container(store_path, "images"))
+    UPLOADS_FOLDER = str(Storage.container(store_path, "images"))
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'html'} # Allowed file types
 
-    # Ensure the upload folder exists
-    Storage.path_must_exist(UPLOADS_FOLDER)
 
+# Ensure the upload folder exists
+Storage.path_must_exist(Config.UPLOADS_FOLDER)
 
 
 # --- requirements.txt ---
