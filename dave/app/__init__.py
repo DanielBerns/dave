@@ -1,11 +1,13 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+from pathlib import Path
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from config import Config
+from .extensions import db, login_manager, migrate
 
 logging_level_str_to_int = {
     "NOT_SET": logging.NOTSET,
@@ -16,16 +18,6 @@ logging_level_str_to_int = {
     "CRITICAL": logging.CRITICAL
 }
 
-# Initialize extensions, but don't configure them yet
-db = SQLAlchemy()
-login_manager = LoginManager()
-migrate = Migrate()
-
-# Configure login manager
-login_manager.login_view = 'auth.login' # The endpoint name for the login page
-login_manager.login_message = 'Please log in to access this page.'
-login_manager.login_message_category = 'info' # Flash message category
-
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -34,6 +26,11 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+
+    # Configure login manager
+    login_manager.login_view = 'auth.login' # The endpoint name for the login page
+    login_manager.login_message = 'Please log in to access this page.'
+    login_manager.login_message_category = 'info' # Flash message category
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
@@ -60,41 +57,13 @@ def create_app(config_class=Config):
     app.logger.addHandler(file_handler)
     app.logger.setLevel(logging_level)
     app.logger.info("Started!")
+    app.logger.info(f"{app.config['ADMIN']}")
 
     @app.route('/test')
     def test_page():
         return '<h1>Testing the Flask Application Factory</h1>'
 
     return app
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # Import models at the bottom to avoid circular dependencies with blueprints

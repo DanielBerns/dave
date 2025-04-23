@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Navbar -->
+<div class="w3-top">
+  <div class="w3-bar w3-theme w3-top w3-left-align w3-large">
+      {% if current_user.is_anonymous %}
+          <a class="w3-bar-item w3-left" href="{{ url_for('home.help') }}">Help</a>
+          <a class="w3-bar-item w3-left" href="{{ url_for('auth.login') }}">Login</a>
+      {% else %}
+          <a class="w3-bar-item w3-left" href="{{ url_for('home.help') }}">Help</a>
+          <a class="w3-bar-item w3-left" href="{{ url_for('home.index') }}">Index</a>
+          <a class="w3-bar-item w3-right" href="{{ url_for('auth.logout')}}">Logout</a>
+      {% endif %}
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="w3-main">
+
+  <div class="w3-row w3-padding-64">
+    <div class="w3-twothird w3-container">
+      <h1 class="w3-text-teal">Heading</h1>
+      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Lorem ipsum
+        dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    </div>
+    <div class="w3-third w3-container">
+      <p class="w3-border w3-padding-large w3-padding-32 w3-center">Elen sila lumen omientelmo</p>
+      <p class="w3-border w3-padding-large w3-padding-64 w3-center">Elen sila lumen omientelmo</p>
+    </div>
+  </div>
+
+  <div class="w3-row">
+    <div class="w3-twothird w3-container">
+      <h1 class="w3-text-teal">Heading</h1>
+      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Lorem ipsum
+        dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    </div>
+    <div class="w3-third w3-container">
+      <p class="w3-border w3-padding-large w3-padding-32 w3-center">Elen sila lumen omientelmo</p>
+      <p class="w3-border w3-padding-large w3-padding-64 w3-center">Elen sila lumen omientelmo</p>
+    </div>
+  </div>
+
+  <div class="w3-row w3-padding-64">
+    <div class="w3-twothird w3-container">
+      <h1 class="w3-text-teal">Heading</h1>
+      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Lorem ipsum
+        dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    </div>
+    <div class="w3-third w3-container">
+      <p class="w3-border w3-padding-large w3-padding-32 w3-center">Lorem Ipsum</p>
+      <p class="w3-border w3-padding-large w3-padding-64 w3-center">Lorem Ipsum</p>
+    </div>
+  </div>
+
+  <footer id="myFooter">
+    <div class="w3-container w3-theme-l2 w3-padding-32">
+      <h4>Footer</h4>
+    </div>
+
+    <div class="w3-container w3-theme-l1">
+      <p>I am Dave</p>
+    </div>
+  </footer>
+
+<!-- END MAIN -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+</script>
+{% endblock %}

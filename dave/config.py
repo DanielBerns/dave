@@ -15,21 +15,21 @@ IDENTIFIER = "dave" # maybe os.environ.get('IDENTIFIER')
 root, store_path, logs_path = Storage.initialize(BASE, IDENTIFIER)
 
 # Load environment variables from .env file "{root}/.env"
+print(root)
 load_dotenv(Path(root, '.env'))
 
 class Config:
     """Base configuration class."""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI') or 'sqlite:///' + str(Path(store_path, 'app.db'))
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
     LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL') or 'DEBUG'
-    UPLOADS_FOLDER = str(Storage.container(store_path, "images"))
+    ADMIN = os.environ.get('ADMIN') or 'admin'
+
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    STORE_PATH = str(store_path)
+    UPLOADS_FOLDER = str(Storage.container(store_path, "images")) # Storage.container creates the folder in case it doesn't exist
+    LOGS_PATH = str(logs_path)
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'html'} # Allowed file types
-
-
-# Ensure the upload folder exists
-Storage.path_must_exist(Config.UPLOADS_FOLDER)
-
 
 # --- requirements.txt ---
 # Create a file named requirements.txt in the root directory

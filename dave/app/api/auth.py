@@ -1,5 +1,6 @@
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, Response
 from application.models import User
+from application.dbops import DBOps
 from application.api.errors import error_response
 
 
@@ -12,11 +13,8 @@ def verify_password(
     username: str,
     password: str
 ) -> User | None:
-    user = User.query.filter_by(username=username).first()
-    if user and user.check_password(password):
-        return user
-    else:
-        return None
+    user = DBOps.get_user_by_username(username)
+    return user if user and user.check_password(password) else None
 
 
 @basic_auth.error_handler
@@ -30,7 +28,7 @@ def basic_auth_error(
 def verify_token(
     token: str
 ) -> User | None:
-    return User.check_token(token) if token else None
+    return DBOps.check_token(token)
 
 
 @token_auth.error_handler

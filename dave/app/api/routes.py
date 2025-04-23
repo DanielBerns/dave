@@ -2,37 +2,27 @@ import os
 from flask import request, jsonify, current_app, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from . import bp
-from ..models import User, TextHTML, Image
-from .. import db
+from app.api import bp
+from app.models import User, TextHTML, Image
+from app import db
 
 def allowed_file(filename: str) -> bool:
     """Checks if the file extension is allowed."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
-@bp.route('/resources', methods=['GET'])
+@bp.route('/text_html_set', methods=['GET'])
 @login_required # Protect API endpoint
 def get_resources():
     """Returns a list of resources accessible to the user."""
     # Basic implementation: return all resources by the current user
     # Add pagination, filtering, searching as needed
-    user_text_htmls = TextHTML.query.filter_by(user_id=current_user.id).order_by(TextHTML.timestamp.desc()).all()
-    resources_list = [
-        {
-            'id': r.id,
-            'name': r.name,
-            'type': r.resource_type.name,
-            'timestamp': r.timestamp.isoformat(),
-            'author_id': r.user_id,
-            # Add URL or filepath info if needed
-            'filepath': r.filepath if r.resource_type == ResourceType.IMAGE else None,
-        } for r in user_resources
-    ]
-    return jsonify(resources_list)
+    user_text_htmls = DBOps.look_for_text_html(author=current_user)
+    uth_list = [uth.to_dict() for uth in user_text_htmls]
+    return jsonify(uth_list)
 
 @bp.route('/resources/<int:resource_id>', methods=['GET'])
 @login_required
-def get_resource(resource_id):
+def get_resource(resource_id: int):
     """Returns details of a specific resource."""
     resource = Resource.query.get_or_404(resource_id)
     # Ensure the user owns the resource or has permission (implement logic if needed)

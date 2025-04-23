@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+body,h1 {font-family: "Raleway", sans-serif}
+body, html {height: 100%}
+.bgimg {
+  background-image:url('/static/images/cat.jpg');
+  min-height: 100%;
+  background-position: center;
+  background-size: cover;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bgimg w3-container">
+<h1 class="w3-center">I am Dave</h1>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+</script>
+
+{% endblock %}

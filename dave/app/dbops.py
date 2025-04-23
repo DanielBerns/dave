@@ -1,10 +1,14 @@
-from typing import IO, BinaryIO
+import pdb
+
+from typing import Generator, List
+from io import BytesIO
 
 from flask import abort
+import sqlalchemy as sa
 
-from models import User, TextHTML, Image
-from tools import create_key
-from . import db
+from app.models import User, TextHTML, Image, ImageType
+from app.tools import generate_random_label
+from app.extensions import db
 
 
 class DBOps:
@@ -14,44 +18,62 @@ class DBOps:
         email: str,
         password: str,
         repeat_password: str
-    ) -> User | None
+    ) -> User | None:
         if password != repeat_password:
             return None
+        user = DBOps.get_user_by_username(username)
+        if user:
+            return None
+        user = DBOps.get_user_by_email(email)
+        if user:
+            return None
+        user = User()
+        user.username = username
+        user.email = email
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        return user
+
+    @staticmethod
+    def get_user_by_id(this_id: int) -> User:
+        user = User.query.filter_by(id=this_id).first()
+        return user
+
+    @staticmethod
+    def get_user_by_username(this_username: str) -> User | None:
+        user = User.query.filter_by(username=this_username).first()
+        return user
+
+    @staticmethod
+    def get_user_by_email(this_email: str) -> User | None:
+        user = User.query.filter_by(email=this_email).first()
+        return user
+
+    @staticmethod
+    def check_token(token: str) -> User | None:
+        user = db.session.scalar(sa.select(User).where(User.token == token))
+        if user is None or user.token_expiration.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            return None
         else:
-            user = User(username, email)
-            user.set_password(password)
-            db.session.add(user)
-            db.commit()
             return user
 
     @staticmethod
-    def get_user(id: int) -> User:
-        return User.query.get_or_404(id)
-
-    @staticmethod
-    def look_for_user(
-        username: str | None = None,
-        email: str | None
-    ) -> User | None
-        if username:
-            # user = db.first_or_404(sa.select(User).where(User.username == username))
-            return User.query.filter_by(username=username).first_or_404()
-        if email:
-            return User.query.filter_by(email=email).first_or_404()
-        return None
-
-    @staticmethod
-    def delete_user(id: int):
-        user = User.query.get_or_404(id)
-        user.delete()
-        db.session.commit()
+    def delete_user(this_id: int) -> None:
+        user = DBOps.get_user_by_id(this_id)
+        if user:
+            user.delete()
+            db.session.commit()
+        else:
+            message = f"DBOps.delete_user: User.id == {this_id} doesn't exist"
+            raise LoggedException(message)
 
     @staticmethod
     def create_text_html(
         content: str,
         author: User
     ) -> TextHTML:
-        label = create_label()
+        label = generate_random_label()
         row = TextHTML(label=label, content=content, author=author)
         db.session.add(row)
         db.commit()
@@ -85,7 +107,7 @@ class DBOps:
 
     @staticmethod
     def create_image(
-        image_content: BInaryIO[IO[bytes]],
+        image_content: BytesIO,
         image_type: ImageType,
         author: User
     ) -> Image:

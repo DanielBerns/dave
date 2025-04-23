@@ -9,9 +9,9 @@ import sqlalchemy.orm as so
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from . import db, login_manager # Import db instance from app package (__init__.py)
 
-from .tools import create_key, get_identifiers_from_number
+from app.extensions import db, login_manager
+from app.tools import get_identifiers_from_number
 
 
 # Enum for Resource Type
@@ -29,7 +29,7 @@ class ImageType(enum.StrEnum):
 
 class User(UserMixin, db.Model):
     """User model for authentication."""
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    id: so.Mapped[int] = so.mapped_column(primary_key=True, autoincrement=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256)) # Increased length for stronger hashes
@@ -81,7 +81,7 @@ class User(UserMixin, db.Model):
         }
         return data
 
-    def get_token(self, expires_in: int =3600) -> str:
+    def get_token(self, expires_in: int = 3600) -> str:
         now = datetime.now(timezone.utc)
         if self.token and self.token_expiration.replace(tzinfo=timezone.utc) > now + timedelta(seconds=60):
             return self.token
@@ -95,13 +95,6 @@ class User(UserMixin, db.Model):
         self.token_expiration = datetime.now(timezone.utc) - timedelta(seconds=1)
         db.session.commit()
 
-    @staticmethod
-    def check_token(token: str) -> Optional["User"]:
-        user = db.session.scalar(sa.select(User).where(User.token == token))
-        if user is None or user.token_expiration.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-            return None
-        else:
-            return user
 
 
 @login_manager.user_loader

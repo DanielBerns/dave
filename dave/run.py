@@ -1,5 +1,6 @@
 from app import create_app, db # Import factory function and db instance
 from app.models import User, TextHTML, Image # Import models
+from app.dbops import DBOps
 
 # Create the Flask app instance using the factory
 app = create_app()
@@ -8,7 +9,7 @@ app = create_app()
 # Makes 'app', 'db', 'User', 'TextHTML', 'Image' available in the shell without imports
 @app.shell_context_processor
 def make_shell_context():
-    return {'app': app, 'db': db, 'User': User, 'TextHTML': TextHTML, 'Image': Image}
+    return {'app': app, 'db': db, 'DBOps': DBOps, 'User': User, 'TextHTML': TextHTML, 'Image': Image}
 
 # The following block allows running the app directly using 'python run.py'
 # However, using 'flask run' (which uses .flaskenv) is generally preferred

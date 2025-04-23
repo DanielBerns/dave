@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="w3-container w3-teal">
+  <h1 class="w3-center">Login</h1>
+</header>
+
+<div class="w3-container">
+<div class="w3-container w3-quarter w3-white"></div>
+<div class="w3-container w3-half w3-margin-top">
+
+    <form class="w3-container w3-card-4" action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.username.label }}<br>
+            {{ form.username(size=32, class_="w3-input") }}<br>
+            {% for error in form.username.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.password.label }}<br>
+            {{ form.password(size=32, class_="w3-input") }}<br>
+            {% for error in form.password.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit(class_="w3-button w3-teal") }}</p>
+    </form>
+
+</div>
+<div class="w3-container w3-quarter w3-white"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+</script>
+{% endblock %}

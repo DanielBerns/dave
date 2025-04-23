@@ -4,20 +4,8 @@ from random import choices, randrange
 from typing import Tuple
 
 
-def create_key(
-    character_pool: str = "qwertyuiopasdfghjklzxcvbnm0123456789",
-    string_length: int = 7
-) -> str:
-    now = datetime.now()
-    short_year = now.year % 100
-    timestamp = f"{now.microsecond:>06d}{now.day:>02d}{now.month:>02d}{now.minute:>02d}{short_year:>02d}{now.second:>02d}"
-    prefix = ''.join(choices(character_pool, k=string_length))
-    hexa_segment = hex(int(timestamp))
-    random_number = random.randrange(101)
-    random_segment = f"{(random_number):>03d}"
-    suffix = ''.join(choices(character_pool, k=string_length))
-    return f"{prefix}{hexa_segment}{random_segment}{suffix}"
-
+def generate_random_label(string_length: int = 32) -> str:
+    return "".join(random.choices(string.ascii_uppercase, k=string_length))
 
 
 def base_256(number: int) -> Tuple[int, int, int]:

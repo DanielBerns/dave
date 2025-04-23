@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% if title %}
+<title>{{ title }}</title>
+{% else %}
+<title>Dave</title>
+{% endif %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/css/w3.css">
+<link rel="stylesheet" href="/static/css/w3-theme-black.css">
+<link rel="stylesheet" href="/static/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+{% block styles %}{% endblock %}
+</head>
+<body>
+
+{% with flashes = get_flashed_messages() %}
+{% if flashes %}
+<article class="w3-container">
+<ul>
+    {% for a_flash in flashes %}
+    <li>{{ a_flash }}</li>
+    {% endfor %}
+</ul>
+</article>
+{% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>
